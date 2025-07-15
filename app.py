@@ -50,7 +50,7 @@ with right_col:
 
     if uploaded_file and user_prompt:
         with st.spinner("Generating answer with GPT-4o..."):
-            response = openai.Chatcompletion.create(
+            response = openai.chat.completions.create(  # ✅ FIXED LINE
                 model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "Answer only if it is available in the given images. If data is not available, reply: Not Founded."},
