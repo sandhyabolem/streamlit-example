@@ -2,78 +2,40 @@ import streamlit as st
 from openai import OpenAI
 import base64
 
-# 🌙 Streamlit dark-themed custom styles
-st.markdown("""
-    <style>
-    body {
-        background-color: #1e1e1e;
-        color: #ffffff;
-    }
-    .stApp {
-        background-color: #1e1e1e;
-    }
-    .stTextInput > div > div > input {
-        background-color: #2a2a2a;
-        color: white;
-    }
-    .stButton > button {
-        background-color: #2e7d32;
-        color: white;
-        border-radius: 8px;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# Get API key securely from Streamlit secrets or directly (not recommended for public apps)
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])  # <- Make sure your secrets are set
 
-# 🗝️ Load API key securely
-OpenAI.api_key = st.secrets["OPENAI_API_KEY"]
+st.title("🧠 Image Q&A using GPT-4o")
 
-# 🖼️ App title
-st.title("🖼️ Image + Text Q&A with GPT-4o")
-st.markdown("#### Upload an image (left) and ask your question (right)")
+uploaded_file = st.file_uploader("📤 Upload an image", type=["jpg", "jpeg", "png"])
+user_prompt = st.text_input("💬 Ask a question about the image")
 
-# 🧱 Split layout into 2 columns
-left_col, right_col = st.columns(2)
+if uploaded_file and user_prompt:
+    with st.spinner("Generating answer with GPT-4o..."):
+        image_bytes = uploaded_file.read()
+        base64_image = base64.b64encode(image_bytes).decode("utf-8")
 
-# 📁 Left column: File upload
-with left_col:
-    uploaded_file = st.file_uploader("📎 Upload an image", type=["jpg", "jpeg", "png"])
-    if uploaded_file:
-        st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
-        base64_image = base64.b64encode(uploaded_file.read()).decode('utf-8')
-        st.markdown("_Image encoded for GPT-4o processing_ ✅")
-    else:
-        base64_image = None
-
-# 💬 Right column: Chat input + response
-with right_col:
-    user_prompt = st.text_input("💬 Ask your question about the image")
-
-    if uploaded_file and user_prompt:
-        with st.spinner("Generating answer with GPT-4o..."):
-            client=OpenAI()
-            response =client.chat.ompletion.create(  # ✅ FIXED LINE
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": "Answer only if it is available in the given images. If data is not available, reply: Not Founded."},
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{base64_image}"
-                                }
-                            },
-                            {
-                                "type": "text",
-                                "text": user_prompt
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Answer only based on the image. If not possible, say 'Data insufficient'."
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": user_prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
                             }
-                        ]
-                    }
-                ],
-                max_tokens=1000
-            )
-            st.markdown("### 📘 GPT-4o's Response:")
-            st.write(response.choices[0].message.content)
-    elif not uploaded_file:
-        st.info("📎 Please upload an image to begin.")
+                        }
+                    ]
+                }
+            ]
+        )
+
+        st.markdown("### 🧠 GPT-4o Response:")
+        st.write(response.choices[0].message.content)
