@@ -1,5 +1,5 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import base64
 
 # 🌙 Streamlit dark-themed custom styles
@@ -25,7 +25,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 🗝️ Load API key securely
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+OpenAI.api_key = st.secrets["OPENAI_API_KEY"]
 
 # 🖼️ App title
 st.title("🖼️ Image + Text Q&A with GPT-4o")
@@ -50,7 +50,8 @@ with right_col:
 
     if uploaded_file and user_prompt:
         with st.spinner("Generating answer with GPT-4o..."):
-            response =openai.ChatCompletion.create(  # ✅ FIXED LINE
+            client=OpenAI()
+            response =client.chat.ompletion.create(  # ✅ FIXED LINE
                 model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "Answer only if it is available in the given images. If data is not available, reply: Not Founded."},
